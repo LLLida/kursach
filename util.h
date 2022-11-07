@@ -91,14 +91,15 @@ bool save_benchmarks(const std::vector<SortBencmarkInfo>& benchmarks, const char
   if (file == NULL) {
     return false;
   }
-  fprintf(file, "Sorts:\n\n");
+  fprintf(file, "Sort times(in ms):\n\n");
   for (auto& bench: benchmarks) {
     if (!bench.enabled)
       continue;
-    fprintf(file, "%s:\n", bench.name);
+    fprintf(file, "%s\n", bench.name);
     for (int i = 0; i < sort_sizes.size(); i++) {
       fprintf(file, "  %d -> %.4f ms\n", (int)sort_sizes[i], bench.measurements[i]);
     }
+    fprintf(file, "\n");
   }
   fclose(file);
   return true;
@@ -106,12 +107,14 @@ bool save_benchmarks(const std::vector<SortBencmarkInfo>& benchmarks, const char
 
 void save_benchmarks_button(const std::vector<SortBencmarkInfo>& benchmarks) {
   static char filename[32] = "info.txt";
+  static char filename2[32];
   static int status = 0;
   ImGui::SetNextItemWidth(150);
   if (ImGui::InputText("Filename", filename, sizeof(filename)))
     status = 0;
   ImGui::SameLine();
   if (ImGui::Button("Save results")) {
+    strcpy(filename2, filename);
     if (!save_benchmarks(benchmarks, filename)) {
       printf("ERROR: failed to open file '%s' for writing\n", filename);
       status = RESULT_ERROR_WRITING;
@@ -121,10 +124,10 @@ void save_benchmarks_button(const std::vector<SortBencmarkInfo>& benchmarks) {
   }
   if (status == RESULT_SUCCESS) {
     ImGui::SameLine();
-    ImGui::TextColored(GREEN_COLOR, "SAVED time results to file '%s'", filename);
+    ImGui::TextColored(GREEN_COLOR, "SAVED time results to file '%s'", filename2);
   } else if (status == RESULT_ERROR_WRITING) {
     ImGui::SameLine();
-    ImGui::TextColored(RED_COLOR, "FAILED to open file '%s' for writing", filename);
+    ImGui::TextColored(RED_COLOR, "FAILED to open file '%s' for writing", filename2);
   }
 }
 
@@ -199,4 +202,34 @@ void sort_user_vector_button(std::vector<int>& vec, const std::vector<SortBencma
     ImGui::TextColored(RED_COLOR, "FAILED to open file '%s' for writing", write_filename);
     break;
   }
+}
+
+void show_table(const std::vector<SortBencmarkInfo>& benchmarks) {
+  const ImGuiTableFlags table_flags =
+    ImGuiTableFlags_Resizable|
+    ImGuiTableFlags_RowBg|
+    ImGuiTableFlags_Borders|
+    ImGuiTableFlags_SizingFixedFit;
+  if (ImGui::BeginTable("Resulsts", benchmarks.size()+1, table_flags)) {
+    // первая строчка
+    ImGui::TableSetupColumn("Sort sizes");
+    for (auto& benchmark: benchmarks) {
+      ImGui::TableSetupColumn(benchmark.name);
+    }
+    ImGui::TableHeadersRow();
+    // данные таблицы
+    for (size_t i = 0; i < sort_sizes.size(); i++) {
+      ImGui::TableNextRow();
+      // размер отсортированного массива
+      ImGui::TableNextColumn();
+      ImGui::Text("%d", sort_sizes[i]);
+      // числа - время сортировок
+      for (auto& benchmark: benchmarks) {
+        ImGui::TableNextColumn();
+        ImGui::Text("%.3f", benchmark.measurements[i]);
+      }
+    }
+    ImGui::EndTable();
+  }
+  ImGui::Separator();
 }

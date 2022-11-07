@@ -68,12 +68,20 @@ int main(int argc, char** argv) {
       update_benchmarks();
     }
 
+    static bool logarithmic = true;
+    ImGui::Checkbox("Logarithmic", &logarithmic);
+
     if (ImPlot::BeginPlot("Time")) {
       std::vector<float> fsizes(sort_sizes.size());
       for (int i = 0; i < sort_sizes.size(); i++) {
         fsizes[i] = (float)sort_sizes[i];
       }
-      ImPlot::SetupAxes("Vector size", "Time in ms");
+      if (logarithmic) {
+        ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+        ImPlot::SetupAxes("Vector size", "Time in ms, 10^");
+      } else {
+        ImPlot::SetupAxes("Vector size", "Time in ms");
+      }
       for (auto& benchmark: benchmarks) {
         if (benchmark.enabled)
           ImPlot::PlotLine(benchmark.name,
@@ -81,6 +89,8 @@ int main(int argc, char** argv) {
       }
       ImPlot::EndPlot();
     }
+    ImGui::Separator();
+    show_table(benchmarks);
 
     save_benchmarks_button(benchmarks);
     sort_user_vector_button(vector, benchmarks);
